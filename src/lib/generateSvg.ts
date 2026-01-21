@@ -45,6 +45,6 @@ export function generateSvg(data: FormData) {
     ${circuitSymbols}
 
     <!-- Device label -->
-    <text x="760" y="125" font-family="Arial, sans-serif" font-size="26" fill="#000">ATV320</text>
+    <text x="760" y="125" font-family="Arial, sans-serif" font-size="26" fill="#000">${data.brand}</text>
 </svg>`
 }
