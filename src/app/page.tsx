@@ -1,66 +1,140 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+'use client'
+
+import { useState } from 'react'
+import { FormData } from '@/types/form'
+import styles from './page.module.scss'
 
 export default function Home() {
-  return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>To get started, edit the page.tsx file.</h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
-  );
+    const [data, setData] = useState<FormData>({
+        brand: 'Schneider',
+        rooms: [
+            { name: 'Salon', sockets: 5 },
+        ],
+        chauffeEau: false,
+        portail: false,
+    })
+
+    const addRoom = () => {
+        setData({
+            ...data,
+            rooms: [...data.rooms, { name: '', sockets: 1 }],
+        })
+    }
+
+    const removeRoom = (index: number) => {
+        setData({
+            ...data,
+            rooms: data.rooms.filter((_, i) => i !== index),
+        })
+    }
+
+    const updateRoom = (
+        index: number,
+        field: 'name' | 'sockets',
+        value: string | number
+    ) => {
+        const rooms = [...data.rooms]
+        rooms[index] = { ...rooms[index], [field]: value }
+        setData({ ...data, rooms })
+    }
+
+    const submit = async () => {
+        const res = await fetch('/api/generate-pdf', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        })
+
+        const blob = await res.blob()
+        window.open(URL.createObjectURL(blob))
+    }
+
+    return (
+        <main className={`${styles.container} ${styles.form}`}>
+            <h1 className={styles.title}>Générateur de schéma électrique</h1>
+
+            <section className={styles.section}>
+                <h2 className={styles.sectionTitle}>Paramètres généraux</h2>
+
+                <div className={styles.field}>
+                    <label>Marque</label>
+                    <select
+                        value={data.brand}
+                        onChange={e =>
+                            setData({ ...data, brand: e.target.value as any })
+                        }
+                    >
+                        <option>Schneider</option>
+                        <option>Legrand</option>
+                    </select>
+                </div>
+            </section>
+
+            <section className={styles.section}>
+                <h2 className={styles.sectionTitle}>Pièces</h2>
+
+                {data.rooms.map((room, index) => (
+                    <div className={styles.room} key={index}>
+                        <input
+                            placeholder="Nom de la pièce"
+                            value={room.name}
+                            onChange={e =>
+                                updateRoom(index, 'name', e.target.value)
+                            }
+                        />
+                        <input
+                            type="number"
+                            min={1}
+                            value={room.sockets}
+                            onChange={e =>
+                                updateRoom(index, 'sockets', Number(e.target.value))
+                            }
+                        />
+                        <button
+                            className={styles.remove}
+                            onClick={() => removeRoom(index)}
+                        >
+                            ✕
+                        </button>
+                    </div>
+                ))}
+
+                <button className={styles.addRoom} onClick={addRoom}>
+                    ➕ Ajouter une pièce
+                </button>
+            </section>
+
+            <section className={styles.section}>
+                <h2 className={styles.sectionTitle}>Options</h2>
+
+                <div className={styles.options}>
+                    <label>
+                        <input
+                            type="checkbox"
+                            checked={data.chauffeEau}
+                            onChange={e =>
+                                setData({ ...data, chauffeEau: e.target.checked })
+                            }
+                        />
+                        Chauffe-eau
+                    </label>
+
+                    <label>
+                        <input
+                            type="checkbox"
+                            checked={data.portail}
+                            onChange={e =>
+                                setData({ ...data, portail: e.target.checked })
+                            }
+                        />
+                        Portail électrique
+                    </label>
+                </div>
+            </section>
+
+            <button className={styles.submit} onClick={submit}>
+                Générer le PDF
+            </button>
+        </main>
+    )
 }
